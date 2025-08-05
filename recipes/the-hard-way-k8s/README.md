@@ -1,7 +1,5 @@
 # The hard way Kubernetes
 
-> This is my Kubernetes The Hard Way version.
-
 ## Cluster Details
 
 Cluster:
@@ -18,33 +16,16 @@ Componentes:
 
 ## Prerequisites
 
-- This tutorial requires four (4) virtual or physical ARM64 or AMD64 machines running Debian 12 (bookworm). The following table lists the four machines and their CPU, memory, and storage requirements.
+- This recipe requires four (4) virtual or physical ARM64 or AMD64 machines running Ubuntu 22_04-lts-gen2. The following table lists the four machines and their CPU, memory, and storage requirements.
 
-| Name    | Description            | CPU | RAM   | Storage |
-| ------- | ---------------------- | --- | ----- | ------- |
-| jumpbox | Administration host    | 1   | 512MB | 10GB    |
-| server  | Kubernetes server      | 1   | 2GB   | 20GB    |
-| node-0  | Kubernetes worker node | 1   | 2GB   | 20GB    |
-| node-1  | Kubernetes worker node | 1   | 2GB   | 20GB    |
+| Name     | Description            | CPU | RAM   | Storage |
+| -------- | ---------------------- | --- | ----- | ------- |
+| jumpbox  | Administration host    | 1   | 512MB | 10GB    |
+| master   | Kubernetes server      | 1   | 2GB   | 20GB    |
+| worker-1 | Kubernetes worker node | 1   | 2GB   | 20GB    |
+| worker-2 | Kubernetes worker node | 1   | 2GB   | 20GB    |
 
-How you provision the machines is up to you, the only requirement is that each machine meet the above system requirements including the machine specs and OS version. Once you have all four machines provisioned, verify the OS requirements by viewing the `/etc/os-release` file:
-
-```bash
-cat /etc/os-release
-```
-
-You should see something similar to the following output:
-
-```text
-PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
-NAME="Debian GNU/Linux"
-VERSION_ID="12"
-VERSION="12 (bookworm)"
-VERSION_CODENAME=bookworm
-ID=debian
-```
-
-## Step-by-Step
+## Step by Step
 
 ### 1. Setup `jumpbox`
 
@@ -58,7 +39,7 @@ apt-get update && apt-get -y install wget curl vim openssl git htop net-tools dn
 
 ```bash
 git clone --depth 1 \
- https://github.com/ithaquaKr/...
+  https://github.com/ithaquaKr/my-kubernetes-cookbook.git
 ```
 
 - Download binaries for various Kubernetes components (Using `wget`)
@@ -208,216 +189,6 @@ done < machines.txt
 #### Certificate Authority
 
 - `ca.conf` file which defines all details needed to generate certificates for each Kubernetes components.
-
-```conf
-[req]
-distinguished_name = req_distinguished_name
-prompt             = no
-x509_extensions    = ca_x509_extensions
-
-[ca_x509_extensions]
-basicConstraints = CA:TRUE
-keyUsage         = cRLSign, keyCertSign
-
-[req_distinguished_name]
-C   = US
-ST  = Washington
-L   = Seattle
-CN  = CA
-
-[admin]
-distinguished_name = admin_distinguished_name
-prompt             = no
-req_extensions     = default_req_extensions
-
-[admin_distinguished_name]
-CN = admin
-O  = system:masters
-
-# Service Accounts
-#
-# The Kubernetes Controller Manager leverages a key pair to generate
-# and sign service account tokens as described in the
-# [managing service accounts](https://kubernetes.io/docs/admin/service-accounts-admin/)
-# documentation.
-
-[service-accounts]
-distinguished_name = service-accounts_distinguished_name
-prompt             = no
-req_extensions     = default_req_extensions
-
-[service-accounts_distinguished_name]
-CN = service-accounts
-
-# Worker Nodes
-#
-# Kubernetes uses a [special-purpose authorization mode](https://kubernetes.io/docs/admin/authorization/node/)
-# called Node Authorizer, that specifically authorizes API requests made
-# by [Kubelets](https://kubernetes.io/docs/concepts/overview/components/#kubelet).
-# In order to be authorized by the Node Authorizer, Kubelets must use a credential
-# that identifies them as being in the `system:nodes` group, with a username
-# of `system:node:<nodeName>`.
-
-[node-0]
-distinguished_name = node-0_distinguished_name
-prompt             = no
-req_extensions     = node-0_req_extensions
-
-[node-0_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Node-0 Certificate"
-subjectAltName       = DNS:node-0, IP:127.0.0.1
-subjectKeyIdentifier = hash
-
-[node-0_distinguished_name]
-CN = system:node:node-0
-O  = system:nodes
-C  = US
-ST = Washington
-L  = Seattle
-
-[node-1]
-distinguished_name = node-1_distinguished_name
-prompt             = no
-req_extensions     = node-1_req_extensions
-
-[node-1_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Node-1 Certificate"
-subjectAltName       = DNS:node-1, IP:127.0.0.1
-subjectKeyIdentifier = hash
-
-[node-1_distinguished_name]
-CN = system:node:node-1
-O  = system:nodes
-C  = US
-ST = Washington
-L  = Seattle
-
-
-# Kube Proxy Section
-[kube-proxy]
-distinguished_name = kube-proxy_distinguished_name
-prompt             = no
-req_extensions     = kube-proxy_req_extensions
-
-[kube-proxy_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Kube Proxy Certificate"
-subjectAltName       = DNS:kube-proxy, IP:127.0.0.1
-subjectKeyIdentifier = hash
-
-[kube-proxy_distinguished_name]
-CN = system:kube-proxy
-O  = system:node-proxier
-C  = US
-ST = Washington
-L  = Seattle
-
-
-# Controller Manager
-[kube-controller-manager]
-distinguished_name = kube-controller-manager_distinguished_name
-prompt             = no
-req_extensions     = kube-controller-manager_req_extensions
-
-[kube-controller-manager_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Kube Controller Manager Certificate"
-subjectAltName       = DNS:kube-controller-manager, IP:127.0.0.1
-subjectKeyIdentifier = hash
-
-[kube-controller-manager_distinguished_name]
-CN = system:kube-controller-manager
-O  = system:kube-controller-manager
-C  = US
-ST = Washington
-L  = Seattle
-
-
-# Scheduler
-[kube-scheduler]
-distinguished_name = kube-scheduler_distinguished_name
-prompt             = no
-req_extensions     = kube-scheduler_req_extensions
-
-[kube-scheduler_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Kube Scheduler Certificate"
-subjectAltName       = DNS:kube-scheduler, IP:127.0.0.1
-subjectKeyIdentifier = hash
-
-[kube-scheduler_distinguished_name]
-CN = system:kube-scheduler
-O  = system:system:kube-scheduler
-C  = US
-ST = Washington
-L  = Seattle
-
-
-# API Server
-#
-# The Kubernetes API server is automatically assigned the `kubernetes`
-# internal dns name, which will be linked to the first IP address (`10.32.0.1`)
-# from the address range (`10.32.0.0/24`) reserved for internal cluster
-# services.
-
-[kube-api-server]
-distinguished_name = kube-api-server_distinguished_name
-prompt             = no
-req_extensions     = kube-api-server_req_extensions
-
-[kube-api-server_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth, serverAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client, server
-nsComment            = "Kube API Server Certificate"
-subjectAltName       = @kube-api-server_alt_names
-subjectKeyIdentifier = hash
-
-[kube-api-server_alt_names]
-IP.0  = 127.0.0.1
-IP.1  = 10.32.0.1
-DNS.0 = kubernetes
-DNS.1 = kubernetes.default
-DNS.2 = kubernetes.default.svc
-DNS.3 = kubernetes.default.svc.cluster
-DNS.4 = kubernetes.svc.cluster.local
-DNS.5 = server.kubernetes.local
-DNS.6 = api-server.kubernetes.local
-
-[kube-api-server_distinguished_name]
-CN = kubernetes
-C  = US
-ST = Washington
-L  = Seattle
-
-
-[default_req_extensions]
-basicConstraints     = CA:FALSE
-extendedKeyUsage     = clientAuth
-keyUsage             = critical, digitalSignature, keyEncipherment
-nsCertType           = client
-nsComment            = "Admin Client Certificate"
-subjectKeyIdentifier = hash
-```
-
 - Generate the CA configuration file, certificate, and private key
 
 ```bash
